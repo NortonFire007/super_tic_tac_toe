@@ -75,4 +75,25 @@ describe("GameScreen", () => {
     await user.click(screen.getByRole("button", { name: "How to play" }));
     expect(screen.getByRole("dialog", { name: "How to play" })).toHaveTextContent("Free Move");
   });
+
+  it("records finished games in a paginated history", async () => {
+    const user = userEvent.setup();
+    render(<GameScreen />);
+    await user.click(screen.getByRole("button", { name: "History" }));
+    expect(screen.getByTestId("history-empty")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Close" }));
+
+    for (let game = 0; game < 6; game++) {
+      await playMoves(TOP_ROW_VICTORY);
+      await user.click(screen.getByRole("button", { name: "Play again" }));
+      await user.click(within(screen.getByRole("dialog", { name: "New game" })).getByRole("button", { name: "Start game" }));
+    }
+
+    await user.click(screen.getByRole("button", { name: "History" }));
+    expect(screen.getAllByTestId("history-row")).toHaveLength(5);
+    expect(screen.getByTestId("history-page")).toHaveTextContent("Page 1 of 2");
+    await user.click(screen.getByRole("button", { name: /Next/ }));
+    expect(screen.getAllByTestId("history-row")).toHaveLength(1);
+    expect(screen.getByTestId("history-page")).toHaveTextContent("Page 2 of 2");
+  }, 30_000);
 });

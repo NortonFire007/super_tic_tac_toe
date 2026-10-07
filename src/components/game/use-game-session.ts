@@ -17,14 +17,18 @@ export interface GameSettings {
 export const DEFAULT_SETTINGS: GameSettings = { mode: "LOCAL", humanPlayer: "X", difficulty: "MEDIUM" };
 
 interface Session {
+  /** Identifies this game across undo/replay, so history can tell games apart. */
+  gameId: string;
   game: GameState;
   settings: GameSettings;
 }
 
 type SessionAction =
   | { type: "play"; move: CellPosition & { player: Player } }
-  | { type: "newGame"; settings: GameSettings }
+  | { type: "newGame"; settings: GameSettings; gameId: string }
   | { type: "undo" };
+
+const newGameId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
 export const isAiTurn = (game: GameState, settings: GameSettings) =>
   settings.mode === "AI" && game.status === "IN_PROGRESS" && game.currentPlayer !== settings.humanPlayer;
@@ -44,7 +48,7 @@ export function getUndoMoveCount({ game, settings }: Session): number | null {
 function sessionReducer(session: Session, action: SessionAction): Session {
   switch (action.type) {
     case "newGame":
-      return { game: createNewGame(), settings: action.settings };
+      return { gameId: action.gameId, game: createNewGame(), settings: action.settings };
     case "play":
       // Stale or illegal requests (e.g. a late AI answer after a restart) are dropped, never half-applied.
       return getMoveError(session.game, action.move) === null
@@ -59,6 +63,7 @@ function sessionReducer(session: Session, action: SessionAction): Session {
 
 export function useGameSession() {
   const [session, dispatch] = useReducer(sessionReducer, undefined, () => ({
+    gameId: newGameId(),
     game: createNewGame(),
     settings: DEFAULT_SETTINGS,
   }));
@@ -72,10 +77,11 @@ export function useGameSession() {
     (move: CellPosition, player: Player) => dispatch({ type: "play", move: { ...move, player } }),
     [],
   );
-  const startNewGame = useCallback((settings: GameSettings) => dispatch({ type: "newGame", settings }), []);
+  const startNewGame = useCallback((settings: GameSettings) => dispatch({ type: "newGame", settings, gameId: newGameId() }), []);
   const undo = useCallback(() => dispatch({ type: "undo" }), []);
 
   return {
+    gameId: session.gameId,
     game: session.game,
     settings: session.settings,
     canUndo: getUndoMoveCount(session) !== null,

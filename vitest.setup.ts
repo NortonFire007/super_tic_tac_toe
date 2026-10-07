@@ -14,4 +14,7 @@ vi.stubGlobal("matchMedia", (query: string) => ({
   dispatchEvent: () => false,
 }));
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  window.localStorage.clear();
+});

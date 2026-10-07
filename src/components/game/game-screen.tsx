@@ -1,29 +1,50 @@
 "use client";
 
 import { MotionConfig } from "motion/react";
-import { CircleHelp, Plus, Undo2 } from "lucide-react";
-import { useState } from "react";
+import { CircleHelp, History, Plus, Undo2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { countLocalBoardsWon, getFinalResult } from "@/game/engine";
 import { GameBoard } from "./game-board";
 import { GameStatus } from "./game-status";
+import { HistoryDialog } from "./history-dialog";
 import { NewGameDialog } from "./new-game-dialog";
 import { RulesDialog } from "./rules-dialog";
 import { Scoreboard } from "./scoreboard";
 import { useAiOpponent } from "./use-ai-opponent";
+import { useGameHistory } from "./use-game-history";
 import { isAiTurn, useGameSession } from "./use-game-session";
 
 const SECONDARY_BUTTON =
   "inline-flex items-center justify-center gap-2 rounded-xl bg-white/[0.06] px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white/[0.06]";
 
 export function GameScreen() {
-  const { game, settings, canUndo, play, playForAi, startNewGame, undo } = useGameSession();
+  const { gameId, game, settings, canUndo, play, playForAi, startNewGame, undo } = useGameSession();
   const aiThinking = useAiOpponent(game, settings, playForAi);
   const [isNewGameOpen, setNewGameOpen] = useState(false);
   const [isRulesOpen, setRulesOpen] = useState(false);
+  const [isHistoryOpen, setHistoryOpen] = useState(false);
+  const { records, saveRecord, discardRecord, clearHistory } = useGameHistory();
+
+  // Log each finished game once; undoing out of a finished game removes its entry again.
+  useEffect(() => {
+    const result = getFinalResult(game);
+    if (!result) return discardRecord(gameId);
+    saveRecord({
+      id: gameId,
+      finishedAt: Date.now(),
+      mode: settings.mode,
+      winner: result.winner,
+      reason: result.reason,
+      boards: countLocalBoardsWon(game),
+      moves: game.history.length,
+    });
+  }, [game, gameId, settings.mode, saveRecord, discardRecord]);
 
   const hasProgress = game.history.length > 0 && game.status === "IN_PROGRESS";
   const inputEnabled = !isAiTurn(game, settings);
   const closeNewGame = () => setNewGameOpen(false);
   const closeRules = () => setRulesOpen(false);
+  const closeHistory = () => setHistoryOpen(false);
 
   return (
     <MotionConfig reducedMotion="user">
@@ -32,10 +53,16 @@ export function GameScreen() {
           <h1 className="font-display text-xl font-semibold tracking-tight sm:text-2xl">
             Ultimate <span className="text-x">Tic</span>-<span className="text-o">Tac</span>-Toe
           </h1>
-          <button type="button" onClick={() => setRulesOpen(true)} className={SECONDARY_BUTTON}>
-            <CircleHelp className="size-4" aria-hidden="true" />
-            How to play
-          </button>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => setHistoryOpen(true)} className={SECONDARY_BUTTON}>
+              <History className="size-4" aria-hidden="true" />
+              History
+            </button>
+            <button type="button" onClick={() => setRulesOpen(true)} className={SECONDARY_BUTTON}>
+              <CircleHelp className="size-4" aria-hidden="true" />
+              How to play
+            </button>
+          </div>
         </header>
 
         <div className="grid flex-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_21rem] lg:grid-rows-[auto_1fr] lg:gap-x-8">
@@ -76,6 +103,7 @@ export function GameScreen() {
         onClose={closeNewGame}
       />
       <RulesDialog open={isRulesOpen} onClose={closeRules} />
+      <HistoryDialog open={isHistoryOpen} records={records} onClear={clearHistory} onClose={closeHistory} />
     </MotionConfig>
   );
 }
