@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createClock, formatClock, getTimeLeft, passTurn, parseTimeLimit } from "./clock";
+import { createClock, formatClock, getTimeLeft, parseTimeLimit, passTurn, pauseClock, resumeClock } from "./clock";
 
 describe("clock", () => {
   it("only charges the active player and never goes negative", () => {
@@ -13,7 +13,7 @@ describe("clock", () => {
 
   it("passTurn banks the elapsed time and restarts the turn", () => {
     const next = passTurn(createClock(60, 0), "X", 5_000);
-    expect(next).toEqual({ remaining: { X: 55_000, O: 60_000 }, turnStartedAt: 5_000 });
+    expect(next).toEqual({ remaining: { X: 55_000, O: 60_000 }, turnStartedAt: 5_000, running: true });
   });
 
   it("formats with rounded-up seconds", () => {
@@ -33,5 +33,14 @@ describe("clock", () => {
     expect(parseTimeLimit("1:75")).toBeNull();
     expect(parseTimeLimit("abc")).toBeNull();
     expect(parseTimeLimit("")).toBeNull();
+  });
+});
+
+describe("clock pausing", () => {
+  it("charges nobody while paused and resumes from the banked time", () => {
+    const paused = pauseClock(createClock(60, 0), "X", 10_000);
+    expect(getTimeLeft(paused, "X", "X", 500_000)).toBe(50_000);
+    const resumed = resumeClock(paused, 500_000);
+    expect(getTimeLeft(resumed, "X", "X", 505_000)).toBe(45_000);
   });
 });

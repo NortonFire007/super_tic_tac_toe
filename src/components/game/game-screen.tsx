@@ -20,7 +20,7 @@ const SECONDARY_BUTTON =
   "inline-flex items-center justify-center gap-2 rounded-xl bg-white/[0.06] px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white/[0.06]";
 
 export function GameScreen() {
-  const { gameId, game, settings, clock, canUndo, play, playForAi, startNewGame, undo, expire } = useGameSession();
+  const { gameId, game, settings, clock, canUndo, play, playForAi, startNewGame, undo, expire, setPaused } = useGameSession();
   const now = useClockTicker(game, clock, expire);
   const aiThinking = useAiOpponent(game, settings, playForAi);
   const [isNewGameOpen, setNewGameOpen] = useState(false);
@@ -42,6 +42,10 @@ export function GameScreen() {
       moves: game.history.length,
     });
   }, [game, gameId, settings.mode, saveRecord, discardRecord]);
+
+  // The clock stops while a dialog covers the game.
+  const dialogOpen = isNewGameOpen || isRulesOpen || isHistoryOpen;
+  useEffect(() => setPaused(dialogOpen), [dialogOpen, setPaused]);
 
   const hasProgress = game.history.length > 0 && game.status === "IN_PROGRESS";
   const inputEnabled = !isAiTurn(game, settings);
@@ -85,7 +89,9 @@ export function GameScreen() {
                 <Plus className="size-4" aria-hidden="true" />
                 New game
               </button>
-              <button type="button" onClick={undo} disabled={!canUndo} className={SECONDARY_BUTTON}>
+              <button type="button" onClick={undo}
+                disabled={!canUndo}
+                title={clock ? "Undo is not available in timed games" : undefined} className={SECONDARY_BUTTON}>
                 <Undo2 className="size-4" aria-hidden="true" />
                 Undo
               </button>

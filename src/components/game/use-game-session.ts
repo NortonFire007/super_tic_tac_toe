@@ -2,7 +2,7 @@
 
 import { useCallback, useReducer } from "react";
 import type { Difficulty } from "@/game/ai/ai-player";
-import { type Clock, createClock, getTimeLeft, passTurn } from "@/game/clock";
+import { type Clock, createClock, getTimeLeft, passTurn, pauseClock, resumeClock } from "@/game/clock";
 import { applyMove, applyTimeout, createNewGame, getMoveError, replayHistory } from "@/game/engine";
 import type { CellPosition, GameState, Player } from "@/game/types";
 
@@ -32,7 +32,8 @@ type SessionAction =
   | { type: "play"; move: CellPosition & { player: Player }; now: number }
   | { type: "newGame"; settings: GameSettings; gameId: string; now: number }
   | { type: "timeout"; now: number }
-  | { type: "undo"; now: number };
+  | { type: "setPaused"; paused: boolean; now: number }
+  | { type: "undo" };
 
 const newGameId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -44,8 +45,8 @@ export const isAiTurn = (game: GameState, settings: GameSettings) =>
 
 /** How many moves to keep when undoing, or null when there is nothing to undo. */
 export function getUndoMoveCount({ game, settings }: Session): number | null {
-  // A timeout is final: undoing it would hand the loser time back.
-  if (game.timeoutLoser) return null;
+  // Undo would let a player take back moves without paying for the time, so timed games disallow it.
+  if (settings.timeLimitSeconds !== null) return null;
   const total = game.history.length;
   if (settings.mode === "LOCAL") return total > 0 ? total - 1 : null;
 
@@ -65,7 +66,7 @@ function expireIfOutOfTime(session: Session, now: number): Session {
   return {
     ...session,
     game: applyTimeout(game, loser),
-    clock: { remaining: { ...clock.remaining, [loser]: 0 }, turnStartedAt: now },
+    clock: { remaining: { ...clock.remaining, [loser]: 0 }, turnStartedAt: now, running: false },
   };
 }
 
@@ -78,6 +79,11 @@ function sessionReducer(session: Session, action: SessionAction): Session {
         settings: action.settings,
         clock: startClock(action.settings, action.now),
       };
+    case "setPaused": {
+      const { clock, game } = session;
+      if (!clock || game.status !== "IN_PROGRESS") return session;
+      return { ...session, clock: action.paused ? pauseClock(clock, game.currentPlayer, action.now) : resumeClock(clock, action.now) };
+    }
     case "timeout":
       return expireIfOutOfTime(session, action.now);
     case "play": {
@@ -95,10 +101,7 @@ function sessionReducer(session: Session, action: SessionAction): Session {
     case "undo": {
       const keep = getUndoMoveCount(session);
       if (keep === null) return session;
-      const game = replayHistory(session.game.history, keep);
-      // Time already spent stays spent; the restored player's turn starts fresh.
-      const clock = session.clock && passTurn(session.clock, session.game.currentPlayer, action.now);
-      return { ...session, game, clock };
+      return { ...session, game: replayHistory(session.game.history, keep) };
     }
   }
 }
@@ -124,7 +127,11 @@ export function useGameSession() {
     (settings: GameSettings) => dispatch({ type: "newGame", settings, gameId: newGameId(), now: Date.now() }),
     [],
   );
-  const undo = useCallback(() => dispatch({ type: "undo", now: Date.now() }), []);
+  const undo = useCallback(() => dispatch({ type: "undo" }), []);
+  const setPaused = useCallback(
+    (paused: boolean) => dispatch({ type: "setPaused", paused, now: Date.now() }),
+    [],
+  );
   const expire = useCallback(() => dispatch({ type: "timeout", now: Date.now() }), []);
 
   return {
@@ -138,5 +145,6 @@ export function useGameSession() {
     startNewGame,
     undo,
     expire,
+    setPaused,
   };
 }

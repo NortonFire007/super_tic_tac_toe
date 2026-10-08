@@ -12,7 +12,7 @@ const TICK_MS = 100;
  */
 export function useClockTicker(game: GameState, clock: Clock | null, onExpire: () => void): number {
   const [now, setNow] = useState(() => Date.now());
-  const running = clock !== null && game.status === "IN_PROGRESS";
+  const running = clock !== null && clock.running && game.status === "IN_PROGRESS";
 
   useEffect(() => {
     if (!running) return;

@@ -185,4 +185,45 @@ describe("GameScreen timed mode", () => {
     act(() => vi.advanceTimersByTime(60_000));
     expect(screen.getByTestId("clock-X-time")).toHaveTextContent(before!);
   });
+
+  it("pauses the clocks while a dialog is open and resumes them on close", async () => {
+    useFakeClock();
+    const user = await startTimed("5:00");
+    act(() => vi.advanceTimersByTime(10_000));
+    await user.click(screen.getByRole("button", { name: "New game" }));
+    act(() => vi.advanceTimersByTime(60_000));
+    await user.click(within(screen.getByRole("dialog", { name: "New game" })).getByRole("button", { name: "Cancel" }));
+    expect(screen.getByTestId("clock-X-time")).toHaveTextContent("4:50");
+    act(() => vi.advanceTimersByTime(5_000));
+    expect(screen.getByTestId("clock-X-time")).toHaveTextContent("4:45");
+  });
+
+  it("disables Undo in timed games", async () => {
+    useFakeClock();
+    const user = await startTimed("5:00");
+    await user.click(cell(0, 4));
+    expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled();
+  });
+
+  it("starting a new game mid-game warns, discards it without a history record and resets the clocks", async () => {
+    useFakeClock();
+    const user = await startTimed("5:00");
+    await user.click(cell(0, 4));
+    act(() => vi.advanceTimersByTime(20_000));
+
+    await user.click(screen.getByRole("button", { name: "New game" }));
+    const dialog = screen.getByRole("dialog", { name: "New game" });
+    expect(dialog).toHaveTextContent("will be discarded and will not be saved to history");
+    await user.click(within(dialog).getByRole("button", { name: "Start game" }));
+
+    expect(screen.getByTestId("clock-X-time")).toHaveTextContent("5:00");
+    expect(screen.getByTestId("clock-O-time")).toHaveTextContent("5:00");
+    expect(screen.getByTestId("turn-indicator")).toHaveTextContent("Player X to move");
+    expect(enabledCells()).toHaveLength(81);
+    act(() => vi.advanceTimersByTime(3_000));
+    expect(screen.getByTestId("clock-X-time")).toHaveTextContent("4:57");
+
+    await user.click(screen.getByRole("button", { name: "History" }));
+    expect(screen.getByTestId("history-empty")).toBeInTheDocument();
+  });
 });

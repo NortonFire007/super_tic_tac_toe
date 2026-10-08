@@ -137,7 +137,7 @@ function NewGameForm({ current, hasProgress, onStart, onClose }: Omit<NewGameDia
         </div>
       )}
 
-      {hasProgress && <p className="text-sm text-muted">The current game will be discarded.</p>}
+      {hasProgress && <p className="text-sm text-muted">The current game will be discarded and will not be saved to history.</p>}
 
       <div className="flex gap-3">
         <button

@@ -10,16 +10,19 @@ export interface Clock {
   /** Time banked by each player as of `turnStartedAt`. */
   readonly remaining: Readonly<Record<Player, number>>;
   readonly turnStartedAt: number;
+  /** False while the game is paused (e.g. a dialog covers the board); nobody is charged. */
+  readonly running: boolean;
 }
 
 export const createClock = (limitSeconds: number, now: number): Clock => ({
   remaining: { X: limitSeconds * 1000, O: limitSeconds * 1000 },
   turnStartedAt: now,
+  running: true,
 });
 
 /** Time left for `player`, never negative; only the player to move is losing time. */
 export function getTimeLeft(clock: Clock, player: Player, activePlayer: Player | null, now: number): number {
-  const elapsed = player === activePlayer ? Math.max(0, now - clock.turnStartedAt) : 0;
+  const elapsed = clock.running && player === activePlayer ? Math.max(0, now - clock.turnStartedAt) : 0;
   return Math.max(0, clock.remaining[player] - elapsed);
 }
 
@@ -28,8 +31,16 @@ export function passTurn(clock: Clock, activePlayer: Player, now: number): Clock
   return {
     remaining: { ...clock.remaining, [activePlayer]: getTimeLeft(clock, activePlayer, activePlayer, now) },
     turnStartedAt: now,
+    running: clock.running,
   };
 }
+
+/** Stops charging anyone, keeping what has already been spent. */
+export const pauseClock = (clock: Clock, activePlayer: Player, now: number): Clock =>
+  clock.running ? { ...passTurn(clock, activePlayer, now), running: false } : clock;
+
+export const resumeClock = (clock: Clock, now: number): Clock =>
+  clock.running ? clock : { ...clock, turnStartedAt: now, running: true };
 
 /** Whole seconds, rounded up so the display only reads 0:00 once time has truly run out. */
 export function formatClock(ms: number): string {
