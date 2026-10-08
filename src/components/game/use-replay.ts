@@ -55,10 +55,10 @@ export function useReplay() {
     };
   }, [state, isPlaying]);
 
-  /** Opens a record at its final position; records without move data cannot be replayed. */
+  /** Opens a record at its start (move 0); records without move data cannot be replayed. */
   const open = useCallback((record: GameRecord) => {
     if (!record.replay) return;
-    setState({ record, replay: record.replay, position: record.replay.moves.length, playing: false });
+    setState({ record, replay: record.replay, position: 0, playing: false });
   }, []);
 
   const close = useCallback(() => setState(null), []);

@@ -25,11 +25,11 @@ test("move list, history replay and read-only navigation", async ({ page }) => {
 
   // 3. Open it as a replay.
   await page.getByRole("button", { name: "Replay", exact: true }).click();
+  await expect(page.getByRole("dialog")).toBeHidden();
   await expect(page.getByTestId("replay-details")).toContainText("17 moves");
-  await expect(page.getByTestId("replay-position")).toHaveText("Move 17 of 17");
+  await expect(page.getByTestId("replay-position")).toHaveText("Move 0 of 17");
 
   // 4. Move 0 is the empty board.
-  await page.getByRole("button", { name: "First", exact: true }).click();
   await expect(page.getByTestId("replay-position")).toHaveText("Move 0 of 17");
   await expect(page.locator('[data-testid^="cell-"][aria-label$=", empty"]')).toHaveCount(81);
 
@@ -70,6 +70,7 @@ test("move list, history replay and read-only navigation", async ({ page }) => {
   await page.reload();
   await page.getByRole("button", { name: "History" }).click();
   await page.getByRole("button", { name: "Replay", exact: true }).click();
+  await page.getByRole("button", { name: "Last", exact: true }).click();
   await expect(page.getByTestId("replay-position")).toHaveText("Move 17 of 17");
   errors.expectNone();
 });
@@ -87,10 +88,8 @@ test("a timed game that ends on time replays with its timeout result", async ({ 
   await page.getByRole("button", { name: "History" }).click();
   await page.getByRole("button", { name: "Replay", exact: true }).click();
   await expect(page.getByTestId("replay-details")).toContainText("Timed · 0:02 per player");
-  await expect(page.getByTestId("result-headline")).toHaveText("Time Out");
-
-  await page.getByRole("button", { name: "First", exact: true }).click();
   await expect(page.getByTestId("turn-indicator")).toHaveText("Player X to move");
   await page.getByRole("button", { name: "Last", exact: true }).click();
+  await expect(page.getByTestId("result-headline")).toHaveText("Time Out");
   await expect(page.getByTestId("game-status")).toContainText("O ran out of time — X wins");
 });

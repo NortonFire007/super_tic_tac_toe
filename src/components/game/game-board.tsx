@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { useMemo } from "react";
 import { getLegalMoves, isGameOver } from "@/game/engine";
 import { findGlobalWinningLine } from "@/game/rules";
-import type { GameState } from "@/game/types";
+import type { GameState, Move } from "@/game/types";
 import { getLineEndpoints } from "./geometry";
 import { PLAYER_TEXT_CLASS } from "./mark";
 import { LocalBoard } from "./local-board";
@@ -14,15 +14,16 @@ interface GameBoardProps {
   /** When false (e.g. the AI is to move) no cell accepts input. */
   inputEnabled: boolean;
   onPlay: (boardIndex: number, cellIndex: number) => void;
-  /** Number of the move previewed from the move list, if any. */
-  highlightedMoveNumber: number | null;
+  /** Outline the latest move on the board; used while replaying. */
+  markLastMove?: boolean;
+  /** The move previewed from the move list, if any; in a replay it may not be on the board yet. */
+  highlightedMove: Move | null;
   onHighlightMove: (moveNumber: number | null) => void;
 }
 
-export function GameBoard({ game, inputEnabled, onPlay, highlightedMoveNumber, onHighlightMove }: GameBoardProps) {
+export function GameBoard({ game, inputEnabled, onPlay, markLastMove = false, highlightedMove, onHighlightMove }: GameBoardProps) {
   const over = isGameOver(game);
   const lastMove = game.history.at(-1) ?? null;
-  const highlightedMove = highlightedMoveNumber === null ? null : (game.history[highlightedMoveNumber - 1] ?? null);
 
   const moveNumbers = useMemo(
     () => new Map(game.history.map((move) => [`${move.boardIndex}:${move.cellIndex}`, move.moveNumber])),
@@ -63,6 +64,7 @@ export function GameBoard({ game, inputEnabled, onPlay, highlightedMoveNumber, o
             isGameOver={over}
             currentPlayer={game.currentPlayer}
             lastMove={lastMove}
+            markLastMove={markLastMove}
             highlightedMove={highlightedMove}
             getMoveNumber={getMoveNumber}
             isCellPlayable={isCellPlayable}

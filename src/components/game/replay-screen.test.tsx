@@ -44,6 +44,8 @@ describe("live move list", () => {
     expect(moveRow(2)).toHaveAccessibleName("Move 2: O, Board A, Center");
     expect(moveRow(2)).toHaveAttribute("aria-current", "step");
     expect(moveRow(1)).not.toHaveAttribute("aria-current");
+    // The latest move is only outlined while replaying.
+    expect(cell(0, 4)).not.toHaveTextContent("2");
   });
 
   it("connects the move list and the board on hover", async () => {
@@ -74,12 +76,14 @@ describe("live move list", () => {
 });
 
 describe("replay", () => {
-  it("opens a finished game from history as a read-only replay at its final position", async () => {
-    await finishGameAndOpenReplay();
+  it("opens a finished game from history as a read-only replay starting at move 0", async () => {
+    const user = await finishGameAndOpenReplay();
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByTestId("replay-details")).toHaveTextContent("17 moves");
-    expect(position()).toHaveTextContent("Move 17 of 17");
+    expect(position()).toHaveTextContent("Move 0 of 17");
+    expect(screen.queryAllByLabelText(/occupied by/)).toHaveLength(0);
+    await user.click(button("Last"));
     expect(screen.getByTestId("result-headline")).toHaveTextContent("X wins");
     expect(screen.getByTestId("global-win-line")).toBeInTheDocument();
     expect(enabledCells()).toHaveLength(0);
@@ -90,6 +94,8 @@ describe("replay", () => {
   it("navigates with the controls and shows the exact state at every position", async () => {
     const user = await finishGameAndOpenReplay();
 
+    expect(button("First")).toBeDisabled();
+    await user.click(button("Last"));
     expect(button("Next")).toBeDisabled();
     expect(button("Last")).toBeDisabled();
 
@@ -107,6 +113,8 @@ describe("replay", () => {
     expect(cell(3, 0)).toHaveAccessibleName("Board D, Top Left, occupied by O");
     expect(moveRow(2)).toHaveAttribute("aria-current", "step");
     expect(cell(3, 0)).toHaveAttribute("data-last-move", "true");
+    expect(cell(3, 0)).toHaveTextContent("2");
+    expect(cell(0, 3)).not.toHaveTextContent("1");
     expect(screen.getByTestId("target-banner")).toHaveTextContent("Board A");
 
     await user.click(button("Previous"));
@@ -215,6 +223,7 @@ describe("history records", () => {
     render(<GameScreen />);
     await user.click(button("History"));
     await user.click(button("Replay"));
+    await user.click(button("Last"));
 
     expect(screen.getByTestId("replay-details")).toHaveTextContent("Timed · 5:00 per player");
     expect(cell(0, 4)).toHaveAccessibleName("Board A, Center, occupied by X");

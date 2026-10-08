@@ -18,6 +18,8 @@ interface LocalBoardProps {
   isGameOver: boolean;
   currentPlayer: Player;
   lastMove: Move | null;
+  /** Outline the latest move (replay only). */
+  markLastMove: boolean;
   /** The move being previewed from the move list (or hovered on the board), if any. */
   highlightedMove: Move | null;
   /** Number of the move that filled a cell, or null while it is empty. */
@@ -48,6 +50,7 @@ export function LocalBoard({
   isGameOver,
   currentPlayer,
   lastMove,
+  markLastMove,
   highlightedMove,
   getMoveNumber,
   isCellPlayable,
@@ -103,6 +106,7 @@ export function LocalBoard({
               playable={isCellPlayable(boardIndex, cellIndex)}
               currentPlayer={currentPlayer}
               isLastMove={lastMove?.boardIndex === boardIndex && lastMove.cellIndex === cellIndex}
+              markLastMove={markLastMove}
               moveNumber={moveNumber}
               isHighlighted={highlightedMove?.boardIndex === boardIndex && highlightedMove.cellIndex === cellIndex}
               onPlay={onPlay}

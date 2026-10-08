@@ -13,6 +13,8 @@ interface CellProps {
   playable: boolean;
   currentPlayer: Player;
   isLastMove: boolean;
+  /** Outline the latest move with its number (replay only, so the step just made is easy to follow). */
+  markLastMove: boolean;
   /** Number of the move that filled this cell, or null while empty. */
   moveNumber: number | null;
   /** The cell is being previewed from the move list (or hovered). */
@@ -25,9 +27,8 @@ function describeCell(boardIndex: number, cellIndex: number, value: CellValue) {
   return `${position}, ${value ? `occupied by ${value}` : "empty"}`;
 }
 
-export function Cell({ boardIndex, cellIndex, value, playable, currentPlayer, isLastMove, moveNumber, isHighlighted, onPlay }: CellProps) {
-  const isMarked = isHighlighted || isLastMove;
-
+export function Cell({ boardIndex, cellIndex, value, playable, currentPlayer, isLastMove, markLastMove, moveNumber, isHighlighted, onPlay }: CellProps) {
+  const isMarked = isHighlighted || (markLastMove && isLastMove);
   return (
     <motion.button
       type="button"
@@ -45,7 +46,7 @@ export function Cell({ boardIndex, cellIndex, value, playable, currentPlayer, is
         playable
           ? "cursor-pointer bg-white/[0.07] hover:bg-white/[0.16] focus-visible:bg-white/[0.16]"
           : "cursor-default bg-white/[0.05]",
-        isHighlighted ? "bg-white/[0.2] ring-2 ring-white shadow-[0_0_14px_rgb(255_255_255/0.45)]" : isLastMove ? "ring-1 ring-white/50" : "",
+        isHighlighted ? "bg-white/[0.2] ring-2 ring-white shadow-[0_0_14px_rgb(255_255_255/0.45)]" : markLastMove && isLastMove ? "ring-2 ring-white/60" : "",
       ].join(" ")}
     >
       {value ? (

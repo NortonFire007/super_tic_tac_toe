@@ -70,6 +70,8 @@ export function GameScreen() {
 
   // While replaying, the board shows the historical position and is read-only.
   const shownGame = replay?.game ?? game;
+  const highlightedMove =
+    highlightedMoveNumber === null ? null : ((replay?.replay.moves ?? game.history)[highlightedMoveNumber - 1] ?? null);
   const shownSettings = replay ? { ...DEFAULT_SETTINGS, mode: "LOCAL" as const } : settings;
 
   return (
@@ -106,7 +108,8 @@ export function GameScreen() {
               game={shownGame}
               inputEnabled={inputEnabled && !replay}
               onPlay={play}
-              highlightedMoveNumber={highlightedMoveNumber}
+              markLastMove={replay !== null}
+              highlightedMove={highlightedMove}
               onHighlightMove={setHighlightedMoveNumber}
             />
           </div>
