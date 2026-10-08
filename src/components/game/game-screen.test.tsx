@@ -1,6 +1,6 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { FREE_MOVE_SETUP, TOP_ROW_VICTORY, type MovePair } from "@/game/test-fixtures";
 import { GameScreen } from "./game-screen";
 
@@ -96,4 +96,93 @@ describe("GameScreen", () => {
     expect(screen.getAllByTestId("history-row")).toHaveLength(1);
     expect(screen.getByTestId("history-page")).toHaveTextContent("Page 2 of 2");
   }, 30_000);
+});
+
+// Only the clock is faked; animations and user-event keep real timers.
+const useFakeClock = () => vi.useFakeTimers({ toFake: ["Date", "setInterval", "clearInterval"] });
+
+describe("GameScreen timed mode", () => {
+  afterEach(() => vi.useRealTimers());
+
+  async function startTimed(time: string) {
+    const user = userEvent.setup();
+    render(<GameScreen />);
+    await user.click(screen.getByRole("button", { name: "New game" }));
+    const dialog = screen.getByRole("dialog", { name: "New game" });
+    await user.click(within(dialog).getByRole("button", { name: "Timed" }));
+    const input = within(dialog).getByLabelText(/Time per player/);
+    expect(input).toHaveValue("5:00");
+    await user.clear(input);
+    await user.type(input, time);
+    await user.click(within(dialog).getByRole("button", { name: "Start game" }));
+    return user;
+  }
+
+  it("shows no clocks in Classic mode", () => {
+    render(<GameScreen />);
+    expect(screen.queryByTestId("game-clock")).not.toBeInTheDocument();
+  });
+
+  it("rejects an invalid time", async () => {
+    useFakeClock();
+    const user = userEvent.setup();
+    render(<GameScreen />);
+    await user.click(screen.getByRole("button", { name: "New game" }));
+    const dialog = screen.getByRole("dialog", { name: "New game" });
+    await user.click(within(dialog).getByRole("button", { name: "Timed" }));
+    await user.clear(within(dialog).getByLabelText(/Time per player/));
+    await user.type(within(dialog).getByLabelText(/Time per player/), "0:00");
+    expect(within(dialog).getByRole("alert")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Start game" })).toBeDisabled();
+  });
+
+  it("runs only the active player's clock and hands over on a move", async () => {
+    useFakeClock();
+    const user = await startTimed("2:30");
+    expect(screen.getByTestId("clock-X-time")).toHaveTextContent("2:30");
+    expect(screen.getByTestId("clock-O-time")).toHaveTextContent("2:30");
+
+    act(() => vi.advanceTimersByTime(10_000));
+    expect(screen.getByTestId("clock-X-time")).toHaveTextContent("2:20");
+    expect(screen.getByTestId("clock-O-time")).toHaveTextContent("2:30");
+    expect(screen.getByTestId("clock-X")).toHaveAttribute("data-active", "true");
+
+    await user.click(cell(0, 4));
+    act(() => vi.advanceTimersByTime(5_000));
+    expect(screen.getByTestId("clock-X-time")).toHaveTextContent("2:20");
+    expect(screen.getByTestId("clock-O-time")).toHaveTextContent("2:25");
+    expect(screen.getByTestId("clock-O")).toHaveAttribute("data-active", "true");
+  });
+
+  it("flags low time, then ends the game with Time Out and blocks further moves", async () => {
+    useFakeClock();
+    await startTimed("0:40");
+    expect(screen.getByTestId("clock-X")).toHaveAttribute("data-low", "false");
+
+    act(() => vi.advanceTimersByTime(15_000));
+    expect(screen.getByTestId("clock-X")).toHaveAttribute("data-low", "true");
+
+    act(() => vi.advanceTimersByTime(30_000));
+    expect(screen.getByTestId("result-headline")).toHaveTextContent("Time Out");
+    expect(screen.getByTestId("game-status")).toHaveTextContent("O wins");
+    expect(screen.getByTestId("clock-X-time")).toHaveTextContent("0:00");
+    expect(enabledCells()).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled();
+
+    act(() => vi.advanceTimersByTime(60_000));
+    expect(screen.getByTestId("clock-X-time")).toHaveTextContent("0:00");
+    expect(screen.getByTestId("clock-O-time")).toHaveTextContent("0:40");
+  });
+
+  it("stops the clocks when the game is won on the board", async () => {
+    useFakeClock();
+    const user = await startTimed("5:00");
+    for (const [boardIndex, cellIndex] of TOP_ROW_VICTORY) {
+      await user.click(cell(boardIndex, cellIndex));
+    }
+    expect(screen.getByTestId("result-headline")).toHaveTextContent("X wins");
+    const before = screen.getByTestId("clock-X-time").textContent;
+    act(() => vi.advanceTimersByTime(60_000));
+    expect(screen.getByTestId("clock-X-time")).toHaveTextContent(before!);
+  });
 });

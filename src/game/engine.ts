@@ -96,6 +96,10 @@ export function checkGlobalWinner(state: GameState): Player | null {
 /** Final outcome of a finished game; null while in progress. */
 export function getFinalResult(state: GameState): GameResult | null {
   if (!isGameOver(state)) return null;
+  if (state.timeoutLoser) {
+    const winner = getOpponent(state.timeoutLoser);
+    return { status: `${winner}_WON`, winner, reason: "TIMEOUT" };
+  }
   const lineWinner = checkGlobalWinner(state);
   if (lineWinner) return { status: `${lineWinner}_WON`, winner: lineWinner, reason: "GLOBAL_LINE" };
 
@@ -108,6 +112,12 @@ export function getFinalResult(state: GameState): GameResult | null {
 function resolveNextTarget(boards: readonly LocalBoard[], playedCellIndex: number): TargetBoard {
   const boardIndex = getTargetBoardFromCell(playedCellIndex);
   return boards[boardIndex].status === "OPEN" ? { mode: "BOARD", boardIndex } : { mode: "FREE_MOVE" };
+}
+
+/** Ends the game because `loser` ran out of time. Does nothing if the game is already over. */
+export function applyTimeout(state: GameState, loser: Player): GameState {
+  if (isGameOver(state)) return state;
+  return { ...state, status: `${getOpponent(loser)}_WON`, timeoutLoser: loser };
 }
 
 /** Pure transition: validates the move and returns the next state, or throws IllegalMoveError. */

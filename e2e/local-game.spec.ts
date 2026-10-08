@@ -109,3 +109,23 @@ test("the game is playable with the keyboard alone", async ({ page }) => {
   await page.keyboard.press("Tab");
   await expect(page.locator(":focus")).toHaveAttribute("data-testid", /^cell-4-/);
 });
+
+test("Timed mode: clocks hand over on a move and the player who runs out loses on time", async ({ page }) => {
+  const errors = trackRuntimeErrors(page);
+  await page.getByRole("button", { name: "New game" }).click();
+  const dialog = page.getByRole("dialog", { name: "New game" });
+  await dialog.getByRole("button", { name: "Timed" }).click();
+  await dialog.getByLabel(/Time per player/).fill("0:03");
+  await dialog.getByRole("button", { name: "Start game" }).click();
+
+  await expect(page.getByTestId("clock-X-time")).toHaveText(/0:0[23]/);
+  await expect(page.getByTestId("clock-O-time")).toHaveText("0:03");
+  await cell(page, 0, 4).click();
+  await expect(page.getByTestId("clock-O")).toHaveAttribute("data-active", "true");
+
+  await expect(page.getByTestId("result-headline")).toHaveText("Time Out", { timeout: 6_000 });
+  await expect(page.getByTestId("game-status")).toContainText("O ran out of time — X wins");
+  await expect(page.getByTestId("clock-O-time")).toHaveText("0:00");
+  await expect(page.locator('[data-testid^="cell-"]:enabled')).toHaveCount(0);
+  errors.expectNone();
+});

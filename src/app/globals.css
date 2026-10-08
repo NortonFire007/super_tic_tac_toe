@@ -57,3 +57,23 @@ body {
     animation: none;
   }
 }
+
+@keyframes low-time-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px rgb(248 113 113 / 0.6), 0 0 18px rgb(248 113 113 / 0.15);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgb(248 113 113 / 0.95), 0 0 30px rgb(248 113 113 / 0.35);
+  }
+}
+
+.low-time-pulse {
+  animation: low-time-pulse 1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .low-time-pulse {
+    animation: none;
+  }
+}

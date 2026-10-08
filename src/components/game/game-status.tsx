@@ -18,6 +18,9 @@ function describeResult(game: GameState): { headline: string; detail: string } {
   const result = getFinalResult(game);
   const { X, O } = countLocalBoardsWon(game);
   if (!result) return { headline: "", detail: "" };
+  if (result.reason === "TIMEOUT") {
+    return { headline: "Time Out", detail: `${game.timeoutLoser} ran out of time — ${result.winner} wins` };
+  }
   if (result.reason === "GLOBAL_LINE") {
     return { headline: `${result.winner} wins`, detail: "Three boards in a row" };
   }

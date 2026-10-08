@@ -40,6 +40,8 @@ export interface GameState {
   readonly target: TargetBoard;
   readonly status: GameStatus;
   readonly history: readonly Move[];
+  /** Set when this player ran out of time; the opponent is then the winner. */
+  readonly timeoutLoser?: Player;
 }
 
 export type MoveErrorCode =
@@ -51,7 +53,7 @@ export type MoveErrorCode =
   | "WRONG_BOARD"
   | "CELL_OCCUPIED";
 
-export type GameResultReason = "GLOBAL_LINE" | "MAJORITY" | "EQUAL_BOARDS";
+export type GameResultReason = "GLOBAL_LINE" | "MAJORITY" | "EQUAL_BOARDS" | "TIMEOUT";
 
 export interface GameResult {
   readonly status: Exclude<GameStatus, "IN_PROGRESS">;

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { DIFFICULTIES, type Difficulty } from "@/game/ai/ai-player";
+import { DEFAULT_TIME_LIMIT_SECONDS, formatTimeLimit, parseTimeLimit } from "@/game/clock";
 import type { Player } from "@/game/types";
 import { Modal } from "./modal";
 import type { GameMode, GameSettings } from "./use-game-session";
@@ -49,6 +50,11 @@ const MODE_OPTIONS: { value: GameMode; label: string }[] = [
   { value: "LOCAL", label: "Local multiplayer" },
   { value: "AI", label: "Single player" },
 ];
+type TimeControl = "CLASSIC" | "TIMED";
+const TIME_CONTROL_OPTIONS: { value: TimeControl; label: string }[] = [
+  { value: "CLASSIC", label: "Classic" },
+  { value: "TIMED", label: "Timed" },
+];
 const SIDE_OPTIONS: { value: Player; label: string }[] = [
   { value: "X", label: "Play as X (first)" },
   { value: "O", label: "Play as O (second)" },
@@ -70,13 +76,18 @@ export function NewGameDialog({ open, current, hasProgress, onStart, onClose }: 
 function NewGameForm({ current, hasProgress, onStart, onClose }: Omit<NewGameDialogProps, "open">) {
   const [settings, setSettings] = useState<GameSettings>(current);
   const update = (patch: Partial<GameSettings>) => setSettings((previous) => ({ ...previous, ...patch }));
+  const [timeControl, setTimeControl] = useState<TimeControl>(current.timeLimitSeconds === null ? "CLASSIC" : "TIMED");
+  const [timeText, setTimeText] = useState(formatTimeLimit(current.timeLimitSeconds ?? DEFAULT_TIME_LIMIT_SECONDS));
+  const parsedTime = parseTimeLimit(timeText);
+  const timeInvalid = timeControl === "TIMED" && parsedTime === null;
 
   return (
     <form
       className="space-y-5"
       onSubmit={(event) => {
         event.preventDefault();
-        onStart(settings);
+        if (timeInvalid) return;
+        onStart({ ...settings, timeLimitSeconds: timeControl === "TIMED" ? parsedTime : null });
         onClose();
       }}
     >
@@ -99,6 +110,33 @@ function NewGameForm({ current, hasProgress, onStart, onClose }: Omit<NewGameDia
         </>
       )}
 
+      <Segmented label="Time control" value={timeControl} options={TIME_CONTROL_OPTIONS} onChange={setTimeControl} />
+
+      {timeControl === "TIMED" && (
+        <div className="space-y-2">
+          <label htmlFor="time-limit" className="text-xs font-semibold uppercase tracking-wider text-muted">
+            Time per player (m:ss)
+          </label>
+          <input
+            id="time-limit"
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            value={timeText}
+            onChange={(event) => setTimeText(event.target.value)}
+            aria-invalid={timeInvalid}
+            aria-describedby={timeInvalid ? "time-limit-error" : undefined}
+            placeholder="5:00"
+            className="w-full rounded-xl bg-ink px-4 py-2.5 text-sm tabular-nums ring-1 ring-white/10 focus:outline-none focus:ring-white/40"
+          />
+          {timeInvalid && (
+            <p id="time-limit-error" role="alert" className="text-sm text-red-400">
+              Enter a time between 0:01 and 99:59, like 2:30 or 5:00.
+            </p>
+          )}
+        </div>
+      )}
+
       {hasProgress && <p className="text-sm text-muted">The current game will be discarded.</p>}
 
       <div className="flex gap-3">
@@ -111,7 +149,8 @@ function NewGameForm({ current, hasProgress, onStart, onClose }: Omit<NewGameDia
         </button>
         <button
           type="submit"
-          className="flex-1 rounded-xl bg-fg px-4 py-3 text-sm font-semibold text-ink transition-transform active:scale-[0.98]"
+          disabled={timeInvalid}
+          className="flex-1 rounded-xl bg-fg px-4 py-3 disabled:opacity-40 text-sm font-semibold text-ink transition-transform active:scale-[0.98]"
         >
           Start game
         </button>

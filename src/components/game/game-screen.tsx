@@ -4,6 +4,7 @@ import { MotionConfig } from "motion/react";
 import { CircleHelp, History, Plus, Undo2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { countLocalBoardsWon, getFinalResult } from "@/game/engine";
+import { GameClock } from "./game-clock";
 import { GameBoard } from "./game-board";
 import { GameStatus } from "./game-status";
 import { HistoryDialog } from "./history-dialog";
@@ -11,6 +12,7 @@ import { NewGameDialog } from "./new-game-dialog";
 import { RulesDialog } from "./rules-dialog";
 import { Scoreboard } from "./scoreboard";
 import { useAiOpponent } from "./use-ai-opponent";
+import { useClockTicker } from "./use-clock-ticker";
 import { useGameHistory } from "./use-game-history";
 import { isAiTurn, useGameSession } from "./use-game-session";
 
@@ -18,7 +20,8 @@ const SECONDARY_BUTTON =
   "inline-flex items-center justify-center gap-2 rounded-xl bg-white/[0.06] px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white/[0.06]";
 
 export function GameScreen() {
-  const { gameId, game, settings, canUndo, play, playForAi, startNewGame, undo } = useGameSession();
+  const { gameId, game, settings, clock, canUndo, play, playForAi, startNewGame, undo, expire } = useGameSession();
+  const now = useClockTicker(game, clock, expire);
   const aiThinking = useAiOpponent(game, settings, playForAi);
   const [isNewGameOpen, setNewGameOpen] = useState(false);
   const [isRulesOpen, setRulesOpen] = useState(false);
@@ -75,6 +78,7 @@ export function GameScreen() {
           </div>
 
           <aside className="space-y-3 px-2 sm:px-0 lg:col-start-2 lg:row-start-2">
+            {clock && <GameClock game={game} clock={clock} now={now} />}
             <Scoreboard game={game} />
             <div className="grid grid-cols-2 gap-3">
               <button type="button" onClick={() => setNewGameOpen(true)} className={SECONDARY_BUTTON}>
@@ -90,6 +94,7 @@ export function GameScreen() {
               {settings.mode === "LOCAL"
                 ? "Local multiplayer"
                 : `Single player · you are ${settings.humanPlayer} · ${settings.difficulty.toLowerCase()}`}
+              {clock && " · timed"}
             </p>
           </aside>
         </div>

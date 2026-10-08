@@ -13,6 +13,7 @@ const REASON_LABEL: Record<GameResultReason, string> = {
   GLOBAL_LINE: "Three boards in a row",
   MAJORITY: "Most boards",
   EQUAL_BOARDS: "Level on boards",
+  TIMEOUT: "Time out",
 };
 
 interface HistoryDialogProps {
