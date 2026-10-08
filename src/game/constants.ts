@@ -29,4 +29,17 @@ export const BOARD_NAMES = [
   "bottom-right",
 ] as const;
 
+/** Presentation names for the nine positions inside a local board (the engine only uses indexes 0–8). */
+export const CELL_NAMES = [
+  "Top Left",
+  "Top Center",
+  "Top Right",
+  "Middle Left",
+  "Center",
+  "Middle Right",
+  "Bottom Left",
+  "Bottom Center",
+  "Bottom Right",
+] as const;
+
 export const FIRST_PLAYER: Player = "X";

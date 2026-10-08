@@ -26,12 +26,15 @@ export interface CellPosition {
 /** A requested move. `player` is optional and, when given, must be the player to move. */
 export interface MoveRequest extends CellPosition {
   readonly player?: Player;
+  /** Wall-clock time (ms since epoch) at which the move was made, when known. */
+  readonly playedAt?: number;
 }
 
 /** An accepted move, as recorded in the history. */
 export interface Move extends CellPosition {
   readonly player: Player;
   readonly moveNumber: number;
+  readonly playedAt?: number;
 }
 
 export interface GameState {

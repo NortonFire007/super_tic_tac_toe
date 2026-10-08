@@ -133,7 +133,13 @@ export function applyMove(state: GameState, request: MoveRequest): GameState {
   const boards = state.boards.slice();
   boards[boardIndex] = { cells, status: resolveLocalBoard(cells) };
 
-  const move: Move = { player, boardIndex, cellIndex, moveNumber: state.history.length + 1 };
+  const move: Move = {
+    player,
+    boardIndex,
+    cellIndex,
+    moveNumber: state.history.length + 1,
+    ...(request.playedAt !== undefined && { playedAt: request.playedAt }),
+  };
   const history = [...state.history, move];
 
   const finished = (status: GameState["status"]): GameState => ({
@@ -165,4 +171,13 @@ export function applyMove(state: GameState, request: MoveRequest): GameState {
 /** Rebuilds the state reached after the first `moveCount` moves of the history. */
 export function replayHistory(history: readonly Move[], moveCount = history.length): GameState {
   return history.slice(0, moveCount).reduce<GameState>((state, move) => applyMove(state, move), createNewGame());
+}
+
+/**
+ * Rebuilds a recorded game after `moveCount` moves through the real engine.
+ * The final position also carries the timeout that ended the game, if any.
+ */
+export function reconstructGame(history: readonly Move[], moveCount: number, timeoutLoser: Player | null): GameState {
+  const state = replayHistory(history, moveCount);
+  return timeoutLoser && moveCount === history.length ? applyTimeout(state, timeoutLoser) : state;
 }

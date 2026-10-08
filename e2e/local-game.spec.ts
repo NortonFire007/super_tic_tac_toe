@@ -34,7 +34,7 @@ test("Flows B and C: the played cell routes the opponent to the matching board",
 test("occupied cells cannot be played again", async ({ page }) => {
   await playMoves(page, [[0, 4], [4, 0]]);
   await expect(cell(page, 0, 4)).toBeDisabled();
-  await expect(cell(page, 0, 4)).toHaveAccessibleName(/: X$/);
+  await expect(cell(page, 0, 4)).toHaveAccessibleName(/occupied by X$/);
 });
 
 test("Flows D and E: winning a board resolves it and a closed target gives a Free Move", async ({ page }) => {
@@ -78,7 +78,7 @@ test("Flow G: a new game resets all 81 cells and X starts again", async ({ page 
 
   await expect(page.getByTestId("turn-indicator")).toHaveText("Player X to move");
   await expect(page.locator('[data-testid^="cell-"]:enabled')).toHaveCount(81);
-  await expect(page.locator('[data-testid^="cell-"][aria-label$=": empty"]')).toHaveCount(81);
+  await expect(page.locator('[data-testid^="cell-"][aria-label$=", empty"]')).toHaveCount(81);
   await expect(page.getByTestId("score-X")).toHaveText("0");
   await expect(page.getByTestId("global-win-line")).toHaveCount(0);
   await expect(page.getByTestId("target-banner")).toContainText("Anywhere");

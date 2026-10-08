@@ -14,11 +14,21 @@ interface GameBoardProps {
   /** When false (e.g. the AI is to move) no cell accepts input. */
   inputEnabled: boolean;
   onPlay: (boardIndex: number, cellIndex: number) => void;
+  /** Number of the move previewed from the move list, if any. */
+  highlightedMoveNumber: number | null;
+  onHighlightMove: (moveNumber: number | null) => void;
 }
 
-export function GameBoard({ game, inputEnabled, onPlay }: GameBoardProps) {
+export function GameBoard({ game, inputEnabled, onPlay, highlightedMoveNumber, onHighlightMove }: GameBoardProps) {
   const over = isGameOver(game);
   const lastMove = game.history.at(-1) ?? null;
+  const highlightedMove = highlightedMoveNumber === null ? null : (game.history[highlightedMoveNumber - 1] ?? null);
+
+  const moveNumbers = useMemo(
+    () => new Map(game.history.map((move) => [`${move.boardIndex}:${move.cellIndex}`, move.moveNumber])),
+    [game.history],
+  );
+  const getMoveNumber = (boardIndex: number, cellIndex: number) => moveNumbers.get(`${boardIndex}:${cellIndex}`) ?? null;
 
   const playableCells = useMemo(
     () => new Set(inputEnabled ? getLegalMoves(game).map((move) => `${move.boardIndex}:${move.cellIndex}`) : []),
@@ -53,8 +63,11 @@ export function GameBoard({ game, inputEnabled, onPlay }: GameBoardProps) {
             isGameOver={over}
             currentPlayer={game.currentPlayer}
             lastMove={lastMove}
+            highlightedMove={highlightedMove}
+            getMoveNumber={getMoveNumber}
             isCellPlayable={isCellPlayable}
             onPlay={onPlay}
+            onHighlightMove={onHighlightMove}
           />
         ))}
       </div>

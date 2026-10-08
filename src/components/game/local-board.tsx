@@ -18,8 +18,13 @@ interface LocalBoardProps {
   isGameOver: boolean;
   currentPlayer: Player;
   lastMove: Move | null;
+  /** The move being previewed from the move list (or hovered on the board), if any. */
+  highlightedMove: Move | null;
+  /** Number of the move that filled a cell, or null while it is empty. */
+  getMoveNumber: (boardIndex: number, cellIndex: number) => number | null;
   isCellPlayable: (boardIndex: number, cellIndex: number) => boolean;
   onPlay: (boardIndex: number, cellIndex: number) => void;
+  onHighlightMove: (moveNumber: number | null) => void;
 }
 
 const ACTIVE_RING: Record<Player, string> = {
@@ -43,8 +48,11 @@ export function LocalBoard({
   isGameOver,
   currentPlayer,
   lastMove,
+  highlightedMove,
+  getMoveNumber,
   isCellPlayable,
   onPlay,
+  onHighlightMove,
 }: LocalBoardProps) {
   const owner = boardStatusOwner(board.status);
   const isResolved = board.status !== "OPEN";
@@ -56,16 +64,19 @@ export function LocalBoard({
       ? `bg-surface-raised ${isFreeMove ? "free-move-pulse" : ACTIVE_RING[currentPlayer]}`
       : "bg-surface/80";
 
+  const isPreviewed = highlightedMove?.boardIndex === boardIndex;
+
   return (
     <motion.div
       role="group"
       aria-label={describeBoard(boardIndex, board, isActive)}
       data-testid={`board-${boardIndex}`}
       data-board-state={isResolved ? board.status : isActive ? (isFreeMove ? "FREE" : "TARGET") : "IDLE"}
+      data-previewed={isPreviewed}
       animate={{ opacity: isResolved || isActive || isGameOver ? 1 : 0.72, scale: isActive && !isFreeMove ? 1.015 : 1 }}
       transition={{ duration: 0.22 }}
       className={`relative grid aspect-square grid-cols-3 gap-[3%] rounded-[9%] p-[4.5%] transition-[background-color,box-shadow] duration-300 ${surface} ${
-        isGlobalWinner ? "ring-2 ring-white/80" : ""
+        isGlobalWinner || isPreviewed ? "ring-2 ring-white/80" : ""
       }`}
     >
       <span
@@ -75,22 +86,30 @@ export function LocalBoard({
         {BOARD_LABELS[boardIndex]}
       </span>
 
-      {board.cells.map((value, cellIndex) => (
-        <div
-          key={cellIndex}
-          className={`min-h-0 min-w-0 transition-opacity duration-300 ${isResolved ? "opacity-30" : ""}`}
-        >
-          <Cell
-            boardIndex={boardIndex}
-            cellIndex={cellIndex}
-            value={value}
-            playable={isCellPlayable(boardIndex, cellIndex)}
-            currentPlayer={currentPlayer}
-            isLastMove={lastMove?.boardIndex === boardIndex && lastMove.cellIndex === cellIndex}
-            onPlay={onPlay}
-          />
-        </div>
-      ))}
+      {board.cells.map((value, cellIndex) => {
+        const moveNumber = getMoveNumber(boardIndex, cellIndex);
+        return (
+          // Hover is tracked here rather than on the button: occupied cells are disabled and swallow mouse events.
+          <div
+            key={cellIndex}
+            onMouseEnter={() => moveNumber !== null && onHighlightMove(moveNumber)}
+            onMouseLeave={() => moveNumber !== null && onHighlightMove(null)}
+            className={`min-h-0 min-w-0 transition-opacity duration-300 ${isResolved ? "opacity-30" : ""}`}
+          >
+            <Cell
+              boardIndex={boardIndex}
+              cellIndex={cellIndex}
+              value={value}
+              playable={isCellPlayable(boardIndex, cellIndex)}
+              currentPlayer={currentPlayer}
+              isLastMove={lastMove?.boardIndex === boardIndex && lastMove.cellIndex === cellIndex}
+              moveNumber={moveNumber}
+              isHighlighted={highlightedMove?.boardIndex === boardIndex && highlightedMove.cellIndex === cellIndex}
+              onPlay={onPlay}
+            />
+          </div>
+        );
+      })}
 
       {winningLine && owner && (
         <svg viewBox="0 0 3 3" aria-hidden="true" className="pointer-events-none absolute inset-0 size-full p-[4.5%]">

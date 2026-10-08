@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { cell, startGame, trackRuntimeErrors } from "./helpers";
 
-const filledBy = (mark: "X" | "O") => `[data-testid^="cell-"][aria-label$=": ${mark}"]`;
+const filledBy = (mark: "X" | "O") => `[data-testid^="cell-"][aria-label$="occupied by ${mark}"]`;
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
@@ -15,7 +15,7 @@ test("the AI answers a human move in the board the move routes to", async ({ pag
   await expect(page.getByText("AI is thinking…")).toBeVisible();
   await expect(page.locator(filledBy("O"))).toHaveCount(1, { timeout: 15_000 });
   // The AI had to play inside board E (index 4).
-  await expect(page.locator('[data-testid^="cell-4-"][aria-label$=": O"]')).toHaveCount(1);
+  await expect(page.locator('[data-testid^="cell-4-"][aria-label$="occupied by O"]')).toHaveCount(1);
   await expect(page.getByTestId("turn-indicator")).toHaveText("You (X) to move");
   errors.expectNone();
 });

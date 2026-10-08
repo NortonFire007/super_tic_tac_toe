@@ -25,6 +25,10 @@ const RULES: { title: string; body: string; diagram?: { highlight: number; label
     body: "The position of the cell you play inside its board decides which of the nine boards your opponent must play in next. Play the top-right cell and they go to the top-right board.",
     diagram: { highlight: 2, label: "Top-right cell sends the opponent to the top-right board" },
   },
+  {
+    title: "Reading the moves",
+    body: "Boards are named A–I from top-left to bottom-right, and cells by position: Top Left, Top Center, … Bottom Right. A move reads like X · Board A · Top Left.",
+  },
   { title: "Win boards", body: "Three marks in a row, column or diagonal claim a small board. Claimed and full boards are closed." },
   {
     title: "Win the game",

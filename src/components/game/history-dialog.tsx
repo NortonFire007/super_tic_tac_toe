@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { GameResultReason } from "@/game/types";
 import { Mark } from "./mark";
@@ -19,6 +19,7 @@ const REASON_LABEL: Record<GameResultReason, string> = {
 interface HistoryDialogProps {
   open: boolean;
   records: readonly GameRecord[];
+  onReplay: (record: GameRecord) => void;
   onClear: () => void;
   onClose: () => void;
 }
@@ -26,18 +27,18 @@ interface HistoryDialogProps {
 const PAGE_BUTTON =
   "inline-flex items-center gap-1 rounded-lg bg-white/[0.06] px-3 py-2 text-sm font-medium transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white/[0.06]";
 
-function RecordRow({ record }: { record: GameRecord }) {
+function RecordRow({ record, onReplay }: { record: GameRecord; onReplay: (record: GameRecord) => void }) {
   const outcome = record.winner ? `${record.winner} won` : "Draw";
 
   return (
     <li data-testid="history-row" className="rounded-2xl bg-ink p-3 ring-1 ring-white/5">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-3">
         <Mark player="X" className="size-6 shrink-0" />
-        <span className="min-w-0 flex-1 truncate text-sm font-medium">X</span>
+        <span className="sr-only">X</span>
         <span className="font-display text-xl font-semibold tabular-nums" data-testid="history-score">
           {record.boards.X} – {record.boards.O}
         </span>
-        <span className="min-w-0 flex-1 truncate text-right text-sm font-medium">O</span>
+        <span className="sr-only">O</span>
         <Mark player="O" className="size-6 shrink-0" />
       </div>
       <p className="mt-2 flex flex-wrap justify-between gap-x-3 text-xs text-muted">
@@ -49,11 +50,17 @@ function RecordRow({ record }: { record: GameRecord }) {
           {new Date(record.finishedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
         </time>
       </p>
+      {record.replay && (
+        <button type="button" onClick={() => onReplay(record)} className={`mt-3 w-full justify-center ${PAGE_BUTTON}`}>
+          <Play className="size-4" aria-hidden="true" />
+          Replay
+        </button>
+      )}
     </li>
   );
 }
 
-export function HistoryDialog({ open, records, onClear, onClose }: HistoryDialogProps) {
+export function HistoryDialog({ open, records, onReplay, onClear, onClose }: HistoryDialogProps) {
   const [requestedPage, setPage] = useState(0);
   const pageCount = Math.max(1, Math.ceil(records.length / PAGE_SIZE));
   // Clamp rather than store: the list can shrink (clear, or an undone game) while open.
@@ -70,7 +77,7 @@ export function HistoryDialog({ open, records, onClear, onClose }: HistoryDialog
         <>
           <ul className="space-y-2">
             {visible.map((record) => (
-              <RecordRow key={record.id} record={record} />
+              <RecordRow key={record.id} record={record} onReplay={onReplay} />
             ))}
           </ul>
 

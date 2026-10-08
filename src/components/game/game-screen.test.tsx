@@ -31,7 +31,7 @@ describe("GameScreen", () => {
     expect(enabledCells()).toHaveLength(9);
     expect(cell(4, 0)).toBeEnabled();
     expect(cell(0, 1)).toBeDisabled();
-    expect(cell(0, 4)).toHaveAccessibleName(/Board A.*: X$/);
+    expect(cell(0, 4)).toHaveAccessibleName("Board A, Center, occupied by X");
     expect(screen.getByTestId("target-banner")).toHaveTextContent("Board E");
     expect(screen.getByTestId("turn-indicator")).toHaveTextContent("Player O to move");
   });
@@ -66,7 +66,7 @@ describe("GameScreen", () => {
     expect(screen.getByTestId("turn-indicator")).toHaveTextContent("Player X to move");
     expect(screen.getByTestId("score-X")).toHaveTextContent("0");
     expect(screen.queryByTestId("global-win-line")).not.toBeInTheDocument();
-    expect(screen.queryAllByLabelText(/: (X|O)$/)).toHaveLength(0);
+    expect(screen.queryAllByLabelText(/occupied by (X|O)$/)).toHaveLength(0);
   });
 
   it("opens the rules dialog", async () => {

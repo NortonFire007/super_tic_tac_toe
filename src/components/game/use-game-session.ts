@@ -22,6 +22,8 @@ export const DEFAULT_SETTINGS: GameSettings = { mode: "LOCAL", humanPlayer: "X",
 interface Session {
   /** Identifies this game across undo/replay, so history can tell games apart. */
   gameId: string;
+  /** When the game began (ms since epoch); stored with the game so its replay can show it. */
+  startedAt: number;
   game: GameState;
   settings: GameSettings;
   /** Null in Classic mode. */
@@ -75,6 +77,7 @@ function sessionReducer(session: Session, action: SessionAction): Session {
     case "newGame":
       return {
         gameId: action.gameId,
+        startedAt: action.now,
         game: createNewGame(),
         settings: action.settings,
         clock: startClock(action.settings, action.now),
@@ -94,7 +97,7 @@ function sessionReducer(session: Session, action: SessionAction): Session {
       if (getMoveError(session.game, action.move) !== null) return session;
       return {
         ...session,
-        game: applyMove(session.game, action.move),
+        game: applyMove(session.game, { ...action.move, playedAt: action.now }),
         clock: session.clock && passTurn(session.clock, session.game.currentPlayer, action.now),
       };
     }
@@ -109,6 +112,7 @@ function sessionReducer(session: Session, action: SessionAction): Session {
 export function useGameSession() {
   const [session, dispatch] = useReducer(sessionReducer, undefined, () => ({
     gameId: newGameId(),
+    startedAt: Date.now(),
     game: createNewGame(),
     settings: DEFAULT_SETTINGS,
     clock: null,
@@ -136,6 +140,7 @@ export function useGameSession() {
 
   return {
     gameId: session.gameId,
+    startedAt: session.startedAt,
     game: session.game,
     settings: session.settings,
     clock: session.clock,

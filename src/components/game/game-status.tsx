@@ -11,7 +11,8 @@ interface GameStatusProps {
   game: GameState;
   settings: GameSettings;
   aiThinking: boolean;
-  onPlayAgain: () => void;
+  /** Omitted while replaying, where there is no game to restart. */
+  onPlayAgain?: () => void;
 }
 
 function describeResult(game: GameState): { headline: string; detail: string } {
@@ -115,7 +116,7 @@ export function GameStatus({ game, settings, aiThinking, onPlayAgain }: GameStat
         </motion.div>
       )}
 
-      {over && (
+      {over && onPlayAgain && (
         <button
           type="button"
           onClick={onPlayAgain}
